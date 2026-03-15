@@ -1991,7 +1991,8 @@ function initWiki() {
     Object.keys(UNIT_DEFS).forEach(name => {
         const def = UNIT_DEFS[name];
         // Heuristic for OPFOR detection in Wiki
-        const wikiFaction = (name === 'T-72' || name === 'BMP-2' || name === 'Mi-24' || name === 'Artyleria') ? 'OPFOR' : 'PL';
+        const opforTypes = ['T-72', 'BMP-2', 'Mi-24', 'Artyleria', 'ZSU-23-4 Szyłka', 'BM-21 Grad'];
+        const wikiFaction = opforTypes.includes(name) ? 'OPFOR' : 'PL';
         const item = document.createElement('div');
         item.className = 'wiki-unit-item';
         item.innerHTML = `
@@ -2020,12 +2021,22 @@ function filterWiki() {
         item.style.display = name.includes(query) ? 'flex' : 'none';
     });
 }
-
 function showWikiDetail(name) {
     const def = UNIT_DEFS[name];
-    const data = WIKI_DATA[name] || { role: 'N/A', description: 'Brak danych taktycznych.', tactics: 'Brak specyficznych porad.', features: [] };
+    if (!def) { console.error(`Błąd Wiki: Brak definicji dla ${name}`); return; }
+
+    const data = WIKI_DATA[name] || { 
+        role: 'N/A', 
+        description: 'Brak danych taktycznych.', 
+        tactics: 'Brak specyficznych porad.', 
+        features: [] 
+    };
+
+    console.log(`Wiki: Wyświetlanie ${name}`, data);
+
     const container = document.getElementById('wiki-details');
-    const wikiFaction = (name === 'T-72' || name === 'BMP-2' || name === 'Mi-24' || name === 'Artyleria') ? 'OPFOR' : 'PL';
+    const opforTypes = ['T-72', 'BMP-2', 'Mi-24', 'Artyleria', 'ZSU-23-4 Szyłka', 'BM-21 Grad'];
+    const wikiFaction = opforTypes.includes(name) ? 'OPFOR' : 'PL';
 
     // Highlight active in list
     document.querySelectorAll('.wiki-unit-item').forEach(el => {
@@ -2075,7 +2086,7 @@ function showWikiDetail(name) {
         </div>
 
         <div class="wiki-features">
-            ${data.features.map(f => `<span class="feature-chip">${f}</span>`).join('')}
+            ${(data.features || []).map(f => `<span class="feature-chip">${f}</span>`).join('')}
         </div>
     `;
 }
