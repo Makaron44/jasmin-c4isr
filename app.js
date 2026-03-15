@@ -1477,8 +1477,7 @@ async function saveMission() {
             hp: u.hp,
             amunicja: u.ammo,
             paliwo: u.fuel,
-            morale: u.morale,
-            jammed: u.jammed || false
+            morale: u.morale
         }));
 
         const { error } = await supabaseClient.from('jednostki_taktyczne').insert(dataToSave);
@@ -1489,7 +1488,7 @@ async function saveMission() {
         showToast('Zapisano w Supabase!', 'success');
     } catch (err) {
         console.error('Save Error:', err);
-        setSupabaseStatus('Błąd zapisu.', 'error');
+        setSupabaseStatus('Błąd zapisu: ' + (err.message || 'Nieznany błąd'), 'error');
     }
 }
 
