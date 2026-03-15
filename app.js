@@ -616,6 +616,11 @@ function onCellClick(x, y) {
         return;
     }
 
+    if (actionMode === 'jam-area') {
+        handleJamming(x, y);
+        return;
+    }
+
     // Select unit
     if (clickedUnit) {
         selectedUnitId = clickedUnit.id;
@@ -677,6 +682,21 @@ function updateButtons() {
                 btnRecruit.textContent = '🏗 WEZWIJ POSIŁKI';
                 btnRecruit.onclick = toggleRecruit;
                 actionArea.appendChild(btnRecruit);
+            }
+
+            if (unit.type === 'Wóz Dowodzenia') {
+                const btnJam = document.createElement('button');
+                btnJam.className = 'btn-secondary btn-special';
+                btnJam.style.borderColor = 'var(--accent-amber)';
+                btnJam.style.color = 'var(--accent-amber)';
+                btnJam.textContent = '📡 ZAKŁÓĆ (WRE)';
+                btnJam.onclick = () => { 
+                    actionMode = 'jam-area'; 
+                    showToast('Wskaż centrum obszaru zakłócania (zasięg 5)', 'info'); 
+                    updateButtons();
+                };
+                if (actionMode === 'jam-area') btnJam.classList.add('active');
+                actionArea.appendChild(btnJam);
             }
         } else {
             document.getElementById('btn-move').disabled = true;
