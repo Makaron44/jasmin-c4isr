@@ -57,7 +57,8 @@ const UNIT_COSTS = {
     'Cysterna': 15,
     'FlyEye': 12,
     'Radar Liwiec': 35,
-    'Wóz Inż': 30
+    'Wóz Inż': 30,
+    'Wóz Dowodzenia': 40
 };
 
 // ==================== MAP LAYOUT (Wielkopolska - okolice Rogoźna) ====================
