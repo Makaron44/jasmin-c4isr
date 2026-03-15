@@ -334,6 +334,7 @@ function showToast(message, type = 'info') {
 // ==================== RENDERING ====================
 function renderMap() {
     const grid = document.getElementById('map-grid');
+    grid.style.gridTemplateColumns = `repeat(${GRID_W}, var(--cell-size))`;
     grid.innerHTML = '';
 
     // Build fog map
