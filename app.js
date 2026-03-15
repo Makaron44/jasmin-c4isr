@@ -195,6 +195,11 @@ let airSupportCooldown = 0;
 const AIR_SUPPORT_MAX_COOLDOWN = 8;
 let reinforcementsCalled = false;
 
+// Custom Scenarios Logic
+let creatorMode = false;
+let activeScenarioId = null;
+let customScenarios = [];
+
 // Advanced C4ISR State
 let persistentReconMap = Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
 let batteryMarkers = []; // {x, y, age} for counter-battery
@@ -1176,6 +1181,7 @@ async function connectToSupabase(url, key) {
         updateSupabaseUI(true);
         if (session) {
             handleAuthStateChange('SIGNED_IN', session);
+            await fetchScenarios(); // Load custom scenarios list
         }
         
         setSupabaseStatus('Połączono pomyślnie.', 'success');
@@ -1284,15 +1290,85 @@ function setSupabaseStatus(msg, type = '') {
     el.className = type;
 }
 
+// ==================== SCENARIO & DATABASE LOGIC ====================
+async function fetchScenarios() {
+    if (!supabaseClient) return;
+    try {
+        const { data, error } = await supabaseClient.from('scenariusze_ratyfikowane').select('*');
+        if (error) throw error;
+        
+        customScenarios = data || [];
+        const select = document.getElementById('sb-scenario-select');
+        select.innerHTML = '<option value="">Wybierz z listy...</option>';
+        select.innerHTML += '<option value="DEFAULT">-- Scenariusz Domyślny (Wielkopolska) --</option>';
+        
+        customScenarios.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.nazwa;
+            select.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Błąd ładowania scenariuszy:', err);
+    }
+}
+
+function enterCreatorMode() {
+    creatorMode = true;
+    activeScenarioId = null;
+    units = [ units.find(u => u.type === 'FOB Rogoźno' && u.alive) ].filter(Boolean); // Keep only FOB if exists, or nothing
+    if (units.length === 0) {
+        units.push({
+            id: 0, faction: 'PL', type: 'FOB Rogoźno', name: 'Główne Dowództwo',
+            x: 9, y: 7, hp: 500, maxHp: 500, ammo: 999, maxAmmo: 999, fuel: 999, maxFuel: 999,
+            morale: 1.0, jammed: false, jammedTurns: 0, alive: true
+        });
+    }
+    
+    // Clear map and reset state
+    turn = 0;
+    simMinutes = 0;
+    playerRP = 999; // Infinite RP for creator
+    document.getElementById('rp-display').style.color = 'var(--accent-green)';
+    document.getElementById('rp-count').textContent = '∞';
+    
+    addLog('system', '🛠 TRYB KREATORA AKTYWNY. Wciśnij "WEZWIJ POSIŁKI" na FOB, aby rozstawiać jednostki (0 RP). Mgła wojny wyłączona.');
+    showToast('Tryb Kreatora Uruchomiony', 'success');
+    
+    deselectUnit();
+}
+
 async function loadMission() {
     if (!supabaseClient) {
         showToast('Najpierw połącz z Supabase!', 'combat');
         return;
     }
 
-    setSupabaseStatus('Wczytywanie danych...');
+    const select = document.getElementById('sb-scenario-select');
+    activeScenarioId = select.value;
+
+    if (!activeScenarioId) {
+        showToast('Wybierz scenariusz z listy!', 'combat');
+        return;
+    }
+
+    // Default Fallback
+    if (activeScenarioId === 'DEFAULT') {
+        creatorMode = false;
+        units = createInitialUnits();
+        turn = 0;
+        simMinutes = 0;
+        playerRP = 50;
+        updateRPDisplay();
+        document.getElementById('rp-display').style.color = 'var(--accent-amber)';
+        addLog('system', '📥 Załadowano Scenariusz Wielkopolski (Domyślny).');
+        renderMap();
+        return;
+    }
+
+    setSupabaseStatus('Wczytywanie scenariusza...', 'info');
     try {
-        const { data, error } = await supabaseClient.from('jednostki_taktyczne').select('*');
+        const { data, error } = await supabaseClient.from('jednostki_taktyczne').select('*').eq('scenariusz_id', activeScenarioId);
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -1343,15 +1419,47 @@ async function saveMission() {
         return;
     }
 
+    if (activeScenarioId === 'DEFAULT') {
+        showToast('Nie można nadpisać domyślnego scenariusza. Stwórz nowy!', 'combat');
+        return;
+    }
+
+    let targetScenarioId = activeScenarioId;
+
+    if (creatorMode || !targetScenarioId) {
+        const scenarioName = prompt("Podaj nazwę nowego scenariusza:");
+        if (!scenarioName) return;
+
+        setSupabaseStatus('Tworzenie scenariusza...', 'info');
+        const { data: newScen, error: scenErr } = await supabaseClient
+            .from('scenariusze_ratyfikowane')
+            .insert([{ nazwa: scenarioName }])
+            .select()
+            .single();
+
+        if (scenErr) {
+            console.error('Błąd tworzenia scenariusza:', scenErr);
+            showToast('Nazwa zajęta lub błąd bazy.', 'error');
+            return;
+        }
+
+        targetScenarioId = newScen.id;
+        activeScenarioId = targetScenarioId;
+        creatorMode = false;
+        await fetchScenarios();
+        document.getElementById('sb-scenario-select').value = targetScenarioId;
+    }
+
     setSupabaseStatus('Zapisywanie stanu...');
     try {
-        // Clear old data first (use gte on integer column to avoid UUID type mismatch error)
-        const { error: deleteError } = await supabaseClient.from('jednostki_taktyczne').delete().gte('pozycja_x', 0);
+        // Clear old data for this scenario
+        const { error: deleteError } = await supabaseClient.from('jednostki_taktyczne').delete().eq('scenariusz_id', targetScenarioId);
         if (deleteError) {
             console.error('Delete Error:', deleteError);
         }
 
         const dataToSave = units.filter(u => u.alive).map(u => ({
+            scenariusz_id: targetScenarioId,
             frakcja: u.faction,
             typ_sprzetu: u.type,
             pozycja_x: u.x,
@@ -1359,7 +1467,8 @@ async function saveMission() {
             hp: u.hp,
             amunicja: u.ammo,
             paliwo: u.fuel,
-            morale: u.morale
+            morale: u.morale,
+            jammed: u.jammed || false
         }));
 
         const { error } = await supabaseClient.from('jednostki_taktyczne').insert(dataToSave);
@@ -1393,6 +1502,7 @@ function init() {
     addLog('system', 'Akcja → kliknij jednostkę PL, potem RUCH/OGIEŃ.');
 
     // Event listeners
+    document.getElementById('btn-sb-new-scenario').addEventListener('click', enterCreatorMode);
     document.getElementById('btn-next-turn').addEventListener('click', nextTurn);
 
     document.getElementById('btn-move').addEventListener('click', () => {
@@ -1638,9 +1748,10 @@ function initRecruitList() {
     const list = document.getElementById('recruit-list');
     list.innerHTML = '';
     
-    Object.keys(UNIT_COSTS).forEach(type => {
-        const cost = UNIT_COSTS[type];
-        const canAfford = playerRP >= cost;
+    // Function to create a card
+    const addCard = (type, faction, baseCost) => {
+        const cost = creatorMode ? 0 : baseCost;
+        const canAfford = playerRP >= cost || creatorMode;
         const def = UNIT_DEFS[type];
         
         const card = document.createElement('div');
@@ -1655,10 +1766,10 @@ function initRecruitList() {
         card.innerHTML = `
             <div style="display:flex; align-items:center; gap:10px; width:100%;">
                 <div style="width:40px; height:40px;">
-                    <svg viewBox="0 0 34 34" style="width:100%; height:100%;">${natoSVG(def.symbol, 'PL')}</svg>
+                    <svg viewBox="0 0 34 34" style="width:100%; height:100%;">${natoSVG(def.symbol, faction)}</svg>
                 </div>
                 <div>
-                    <div style="font-weight:bold; color:var(--text-primary); font-size:16px;">${type}</div>
+                    <div style="font-weight:bold; color:var(--text-primary); font-size:16px;">${type} <span style="font-size:10px; color:${faction==='PL'?'var(--accent-blue)':'var(--accent-amber)'}">${faction}</span></div>
                     <div style="color:var(--accent-amber); font-family:var(--font-mono); font-size:14px;">Koszt: ${cost} RP</div>
                 </div>
             </div>
@@ -1668,17 +1779,29 @@ function initRecruitList() {
             </button>
         `;
         
-        card.onclick = () => recruitUnit(type, cost);
+        card.onclick = () => recruitUnit(type, cost, faction);
         list.appendChild(card);
-    });
+    };
+
+    // Add PL units
+    Object.keys(UNIT_COSTS).forEach(type => addCard(type, 'PL', UNIT_COSTS[type]));
+
+    // In creator mode, add OPFOR units too
+    if (creatorMode) {
+        const opforTypes = ['T-72', 'BMP-2', 'Artyleria', 'Mi-24', 'Rozpoznanie', 'Spike ATGM', 'Mina'];
+        opforTypes.forEach(type => addCard(type, 'OPFOR', 0));
+    }
 }
 
-function recruitUnit(type, cost) {
-    if (playerRP < cost) return;
+function recruitUnit(type, cost, faction) {
+    if (!creatorMode && playerRP < cost) return;
 
     // Find free space near FOB
     const fob = units.find(u => u.alive && u.type === 'FOB Rogoźno');
-    if (!fob) return;
+    if (!fob) {
+        showToast('Brak FOB na mapie!', 'combat');
+        return;
+    }
 
     let spawnCell = null;
     const neighbors = [
@@ -1705,14 +1828,16 @@ function recruitUnit(type, cost) {
     }
 
     // Process payment
-    playerRP -= cost;
-    updateRPDisplay();
+    if (!creatorMode) {
+        playerRP -= cost;
+        updateRPDisplay();
+    }
 
     // Create unit
     const def = UNIT_DEFS[type];
     const newUnit = {
         id: units.length,
-        faction: 'PL',
+        faction: faction,
         type: type,
         name: `${type} Posiłki`,
         x: spawnCell.x,
@@ -1727,9 +1852,10 @@ function recruitUnit(type, cost) {
     };
     
     units.push(newUnit);
-    addLog('system', `📦 POSIŁKI: Wezwano ${type} na pozycję [${spawnCell.x},${spawnCell.y}].`);
+    addLog('system', `📦 POSIŁKI: Wezwano ${type} (${faction}) na pozycję [${spawnCell.x},${spawnCell.y}].`);
     showToast(`Posiłki przybyły: ${type}`, 'success');
     
-    toggleRecruit();
+    if (!creatorMode) toggleRecruit(); // Keep open in creator mode for multiple placements
     renderMap();
 }
+

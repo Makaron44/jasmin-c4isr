@@ -103,11 +103,20 @@
                         <button id="btn-sb-connect" class="btn-secondary" style="width:100%">💾 ZAPISZ I POŁĄCZ</button>
                     </div>
 
-                    <div id="sb-actions" class="supabase-buttons" style="display:none; margin-top:10px;">
-                        <button id="btn-sb-load" class="btn-secondary">📥 WCZYTAJ MISJĘ</button>
-                        <button id="btn-sb-save" class="btn-secondary">📤 ZAPISZ STAN</button>
+                    <div id="sb-actions" class="supabase-buttons" style="display:none; margin-top:10px; display:flex; flex-direction:column; gap:5px;">
+                        <button id="btn-sb-new-scenario" class="btn-primary" style="margin-bottom:10px; border-color:var(--accent-amber); color:var(--accent-amber)">🛠 TWÓRZ NOWY SCENARIUSZ</button>
+                        
+                        <label style="font-size:0.8em; color:var(--text-dim);">AKTYWNY SCENARIUSZ:</label>
+                        <select id="sb-scenario-select" style="background:#0a101f; color:var(--text-primary); border:1px solid var(--border); padding:5px; margin-bottom:10px; font-family:var(--font-mono);">
+                            <option value="">Ładowanie...</option>
+                        </select>
+                        
+                        <div style="display:flex; justify-content:space-between; gap:5px;">
+                            <button id="btn-sb-load" class="btn-secondary" style="flex:1;">📥 WCZYTAJ</button>
+                            <button id="btn-sb-save" class="btn-secondary" style="flex:1;">📤 ZAPISZ</button>
+                        </div>
                     </div>
-                    <div id="sb-status"></div>
+                    <div id="sb-status" style="margin-top:10px;"></div>
                 </div>
             </div>
 
@@ -115,20 +124,19 @@
             <div id="sql-panel" class="panel collapsible">
                 <div class="panel-header" onclick="togglePanel('sql-panel')">📐 SQL – STRUKTURA TABELI ▼</div>
                 <div class="panel-body">
-                    <pre><code>CREATE TABLE jednostki_taktyczne (
+                    <pre style="font-size:0.7em;"><code>-- 1. UTWÓRZ TABELĘ SCENARIUSZY
+CREATE TABLE scenariusze_ratyfikowane (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  frakcja TEXT NOT NULL
-    CHECK (frakcja IN ('PL','OPFOR')),
-  pozycja_x INTEGER NOT NULL,
-  pozycja_y INTEGER NOT NULL,
-  typ_sprzetu TEXT NOT NULL,
-  hp INTEGER NOT NULL DEFAULT 100,
-  amunicja INTEGER NOT NULL DEFAULT 100,
-  paliwo INTEGER NOT NULL DEFAULT 100,
-  morale REAL NOT NULL DEFAULT 1.0,
-  jammed BOOLEAN NOT NULL DEFAULT FALSE,
+  nazwa TEXT UNIQUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
-);</code></pre>
+);
+
+-- 2. ZAKTUALIZUJ TABELĘ JEDNOSTEK
+ALTER TABLE jednostki_taktyczne 
+ADD COLUMN scenariusz_id UUID REFERENCES scenariusze_ratyfikowane(id) ON DELETE CASCADE;
+
+-- (Jeśli to czysta instalacja, stwórz tabelę jednostek z dodanym scenariusz_id)
+</code></pre>
                 </div>
             </div>
         </aside>
