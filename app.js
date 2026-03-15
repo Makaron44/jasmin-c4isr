@@ -488,8 +488,8 @@ function updateUnitInfo() {
     const u = units.find(u => u.id === selectedUnitId);
     if (!u) return;
 
-    const isPL = u.faction === 'PL';
-    const fClass = isPL ? 'friendly' : 'hostile';
+    const isMovable = u.faction === 'PL' || creatorMode;
+    const fClass = u.faction === 'PL' ? 'friendly' : 'hostile';
     const def = UNIT_DEFS[u.type];
 
     const barHTML = (cls, val, max) => {
@@ -522,9 +522,9 @@ function updateUnitInfo() {
         </div>
     `;
 
-    // Enable controls for PL units
-    document.getElementById('btn-move').disabled = !isPL || u.jammed || u.fuel <= 0 || !u.alive;
-    document.getElementById('btn-fire').disabled = !isPL || u.ammo <= 0 || !u.alive;
+    // Enable controls for movable units (PL or any in creator mode)
+    document.getElementById('btn-move').disabled = !isMovable || u.jammed || u.fuel <= 0 || !u.alive;
+    document.getElementById('btn-fire').disabled = !isMovable || u.ammo <= 0 || !u.alive;
 }
 
 // ==================== INTERACTION ====================
@@ -591,7 +591,7 @@ function updateButtons() {
         const existingSpecial = actionArea.querySelectorAll('.btn-special');
         existingSpecial.forEach(b => b.remove());
 
-        if (unit && unit.alive && unit.faction === 'PL' && !unit.jammed) {
+        if (unit && unit.alive && (unit.faction === 'PL' || creatorMode) && !unit.jammed) {
             document.getElementById('btn-move').disabled = false;
             document.getElementById('btn-fire').disabled = false;
 
@@ -1029,6 +1029,11 @@ function moveOpforUnit(unit, target) {
 
 // ==================== TURN PROCESSING ====================
 function nextTurn() {
+    if (creatorMode) {
+        showToast('Tury są wstrzymane w Trybie Kreatora', 'info');
+        return;
+    }
+
     turn++;
     simMinutes += 15;
     playerRP += 10; // Gain 10 RP per turn
