@@ -673,21 +673,26 @@ function handleMove(x, y) {
     const dist = Math.abs(x - unit.x) + Math.abs(y - unit.y);
     const def = UNIT_DEFS[unit.type];
 
-    if (dist > def.speed || dist === 0) return;
-    if (terrain[y][x] === T.RIVER) { showToast('Nie można przejść przez rzekę!', 'combat'); return; }
+    if (!creatorMode && dist > def.speed) return;
+    if (dist === 0) return;
+    if (terrain[y][x] === T.RIVER && unit.type !== 'FlyEye') { showToast('Nie można przejść przez rzekę!', 'combat'); return; }
     if (units.some(u => u.alive && u.x === x && u.y === y)) { showToast('Pole zajęte!', 'combat'); return; }
 
-    const fuelCost = FUEL_COST[terrain[y][x]];
-    if (unit.fuel < fuelCost) { showToast('Brak paliwa!', 'combat'); return; }
+    const fuelCost = creatorMode ? 0 : FUEL_COST[terrain[y][x]];
+    if (!creatorMode && unit.fuel < fuelCost) { showToast('Brak paliwa!', 'combat'); return; }
 
     const oldFuel = unit.fuel;
-    unit.fuel = Math.max(0, unit.fuel - fuelCost);
+    if (!creatorMode) unit.fuel = Math.max(0, unit.fuel - fuelCost);
     const oldX = unit.x, oldY = unit.y;
     unit.x = x; unit.y = y;
 
-    addLog('move', `${unit.name} przesunięto [${oldX},${oldY}] → [${x},${y}] (paliwo: ${oldFuel} → ${unit.fuel})`);
-    addLog('logistics', `${unit.name}: zużycie MPS -${fuelCost} (teren: ${terrain[y][x]})`);
-    showToast(`⛽ ${unit.name}: paliwo ${oldFuel} → ${unit.fuel} (-${fuelCost})`, 'info');
+    if (creatorMode) {
+        addLog('move', `🛠 ${unit.name} zrzucono [${oldX},${oldY}] → [${x},${y}]`);
+    } else {
+        addLog('move', `${unit.name} przesunięto [${oldX},${oldY}] → [${x},${y}] (paliwo: ${oldFuel} → ${unit.fuel})`);
+        addLog('logistics', `${unit.name}: zużycie MPS -${fuelCost} (teren: ${terrain[y][x]})`);
+        showToast(`⛽ ${unit.name}: paliwo ${oldFuel} → ${unit.fuel} (-${fuelCost})`, 'info');
+    }
 
     actionMode = null;
     updateButtons();
