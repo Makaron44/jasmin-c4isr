@@ -120,6 +120,34 @@
                 </div>
             </div>
 
+            <!-- TERRAIN EDITOR (Hidden by default, shown in Creator Mode) -->
+            <div id="terrain-editor-panel" class="panel" style="display:none; border-color:var(--accent-green);">
+                <div class="panel-header">🌲 EDYTOR TERENU </div>
+                <div class="panel-body">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <label style="flex:1; font-size:12px; color:var(--text-dim);">SZER (Max 40)
+                            <input type="number" id="input-grid-w" value="20" min="5" max="40" style="width:100%; background:#0a101f; color:var(--text-primary); border:1px solid var(--border); padding:5px; margin-top:5px;">
+                        </label>
+                        <label style="flex:1; font-size:12px; color:var(--text-dim);">WYS (Max 30)
+                            <input type="number" id="input-grid-h" value="15" min="5" max="30" style="width:100%; background:#0a101f; color:var(--text-primary); border:1px solid var(--border); padding:5px; margin-top:5px;">
+                        </label>
+                        <button id="btn-resize-map" class="btn-secondary" style="margin-top:20px; padding:5px 10px;">Zastosuj</button>
+                    </div>
+                    
+                    <div style="font-size:12px; color:var(--text-dim); margin-bottom:5px;">NARZĘDZIE:</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;" id="terrain-palette">
+                        <button class="btn-secondary active" data-terrain="Kursor" style="font-size:12px;">🖱️ Kursor / Ruch</button>
+                        <button class="btn-secondary" data-terrain="Równina" style="font-size:12px;">🌾 Równina</button>
+                        <button class="btn-secondary" data-terrain="Las" style="font-size:12px;">🌲 Las</button>
+                        <button class="btn-secondary" data-terrain="Wzgórze" style="font-size:12px;">⛰️ Wzgórze</button>
+                        <button class="btn-secondary" data-terrain="Miasto" style="font-size:12px;">🏙️ Miasto</button>
+                        <button class="btn-secondary" data-terrain="Droga" style="font-size:12px;">🛣️ Droga</button>
+                        <button class="btn-secondary" data-terrain="Rzeka" style="font-size:12px;">💧 Rzeka</button>
+                        <button class="btn-secondary" data-terrain="Most" style="font-size:12px;">🌉 Most</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- SQL REFERENCE -->
             <div id="sql-panel" class="panel collapsible">
                 <div class="panel-header" onclick="togglePanel('sql-panel')">📐 SQL – STRUKTURA TABELI ▼</div>
@@ -128,6 +156,9 @@
 CREATE TABLE scenariusze_ratyfikowane (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nazwa TEXT UNIQUE NOT NULL,
+  szerokosc INT DEFAULT 20,
+  wysokosc INT DEFAULT 15,
+  teren_json TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

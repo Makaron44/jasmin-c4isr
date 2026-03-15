@@ -3,27 +3,27 @@
    Main Application Logic
    ============================================ */
 
-// ==================== CONSTANTS ====================
-const GRID_W = 20;
-const GRID_H = 15;
+// ==================== CONSTANTS & GLOBALS ====================
+let GRID_W = 20;
+let GRID_H = 15;
 const SIM_START_HOUR = 6;
 
 // Terrain types
 const T = {
     PLAIN: 'plain', FOREST: 'forest', URBAN: 'urban',
-    RIVER: 'river', ROAD: 'road', BRIDGE: 'bridge'
+    RIVER: 'river', ROAD: 'road', BRIDGE: 'bridge', HILL: 'hill'
 };
 
 // Terrain cover bonuses (damage reduction)
 const TERRAIN_COVER = {
     [T.PLAIN]: 0.0, [T.FOREST]: 0.4, [T.URBAN]: 0.5,
-    [T.RIVER]: 0.2, [T.ROAD]: 0.0, [T.BRIDGE]: 0.1
+    [T.RIVER]: 0.2, [T.ROAD]: 0.0, [T.BRIDGE]: 0.1, [T.HILL]: 0.3
 };
 
 // Fuel cost per terrain
 const FUEL_COST = {
     [T.PLAIN]: 10, [T.FOREST]: 20, [T.URBAN]: 12,
-    [T.RIVER]: 999, [T.ROAD]: 8, [T.BRIDGE]: 8
+    [T.RIVER]: 999, [T.ROAD]: 8, [T.BRIDGE]: 8, [T.HILL]: 15
 };
 
 // Unit definitions
@@ -96,7 +96,7 @@ function parseMap() {
 
 const TERRAIN_ICONS = {
     [T.FOREST]: '🌲', [T.URBAN]: '🏘', [T.RIVER]: '〜',
-    [T.ROAD]: '═', [T.BRIDGE]: '🌉'
+    [T.ROAD]: '═', [T.BRIDGE]: '🌉', [T.HILL]: '⛰️'
 };
 
 // ==================== NATO APP-6 SVG SYMBOLS ====================
@@ -199,9 +199,15 @@ let reinforcementsCalled = false;
 let creatorMode = false;
 let activeScenarioId = null;
 let customScenarios = [];
+let activeBrush = 'Kursor';
 
 // Advanced C4ISR State
-let persistentReconMap = Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
+let persistentReconMap = [];
+function resetPersistentReconMap() {
+    persistentReconMap = Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
+}
+resetPersistentReconMap();
+
 let batteryMarkers = []; // {x, y, age} for counter-battery
 let environment = { isNight: false, weather: 'clear' };
 let c2Nodes = []; // References to C2 units for network check
@@ -529,6 +535,15 @@ function updateUnitInfo() {
 
 // ==================== INTERACTION ====================
 function onCellClick(x, y) {
+    if (creatorMode && activeBrush !== 'Kursor') {
+        const brushToTerrain = { 'Równina': T.PLAIN, 'Las': T.FOREST, 'Wzgórze': T.HILL, 'Miasto': T.URBAN, 'Droga': T.ROAD, 'Rzeka': T.RIVER, 'Most': T.BRIDGE };
+        if (brushToTerrain[activeBrush]) {
+            terrain[y][x] = brushToTerrain[activeBrush];
+            renderMap();
+        }
+        return;
+    }
+
     const clickedUnit = units.find(u => u.alive && u.x === x && u.y === y);
 
     if (actionMode === 'move' && selectedUnitId !== null) {
@@ -1326,11 +1341,13 @@ async function fetchScenarios() {
 function enterCreatorMode() {
     creatorMode = true;
     activeScenarioId = null;
+    document.getElementById('terrain-editor-panel').style.display = 'block';
+
     units = [ units.find(u => u.type === 'FOB Rogoźno' && u.alive) ].filter(Boolean); // Keep only FOB if exists, or nothing
     if (units.length === 0) {
         units.push({
             id: 0, faction: 'PL', type: 'FOB Rogoźno', name: 'Główne Dowództwo',
-            x: 9, y: 7, hp: 500, maxHp: 500, ammo: 999, maxAmmo: 999, fuel: 999, maxFuel: 999,
+            x: Math.floor(GRID_W/2), y: Math.floor(GRID_H/2), hp: 500, maxHp: 500, ammo: 999, maxAmmo: 999, fuel: 999, maxFuel: 999,
             morale: 1.0, jammed: false, jammedTurns: 0, alive: true
         });
     }
@@ -1342,7 +1359,7 @@ function enterCreatorMode() {
     document.getElementById('rp-display').style.color = 'var(--accent-green)';
     document.getElementById('rp-count').textContent = '∞';
     
-    addLog('system', '🛠 TRYB KREATORA AKTYWNY. Wciśnij "WEZWIJ POSIŁKI" na FOB, aby rozstawiać jednostki (0 RP). Mgła wojny wyłączona.');
+    addLog('system', '🛠 TRYB KREATORA AKTYWNY. Możesz używać Palety Terenu i rozstawiać jednostki wrzucając je (0 RP). Mgła wojny wyłączona.');
     showToast('Tryb Kreatora Uruchomiony', 'success');
     
     deselectUnit();
@@ -1365,6 +1382,12 @@ async function loadMission() {
     // Default Fallback
     if (activeScenarioId === 'DEFAULT') {
         creatorMode = false;
+        document.getElementById('terrain-editor-panel').style.display = 'none';
+        GRID_W = 20; 
+        GRID_H = 15;
+        terrain = parseMap();
+        resetPersistentReconMap();
+        
         units = createInitialUnits();
         turn = 0;
         simMinutes = 0;
@@ -1378,6 +1401,27 @@ async function loadMission() {
 
     setSupabaseStatus('Wczytywanie scenariusza...', 'info');
     try {
+        // Wyciągnij mapę tła dla scenariusza (szerokość, wysokość, JSON terenu)
+        const { data: scenData, error: scenErr } = await supabaseClient.from('scenariusze_ratyfikowane').select('*').eq('id', activeScenarioId).single();
+        if (scenErr) throw scenErr;
+
+        creatorMode = false;
+        document.getElementById('terrain-editor-panel').style.display = 'none';
+
+        if (scenData.szerokosc && scenData.wysokosc) {
+            GRID_W = scenData.szerokosc;
+            GRID_H = scenData.wysokosc;
+        } else {
+            GRID_W = 20; GRID_H = 15;
+        }
+
+        if (scenData.teren_json) {
+            terrain = JSON.parse(scenData.teren_json);
+        } else {
+            terrain = parseMap(); // default fallback if no json
+        }
+        resetPersistentReconMap();
+
         const { data, error } = await supabaseClient.from('jednostki_taktyczne').select('*').eq('scenariusz_id', activeScenarioId);
         if (error) throw error;
 
@@ -1443,7 +1487,12 @@ async function saveMission() {
         setSupabaseStatus('Tworzenie scenariusza...', 'info');
         const { data: newScen, error: scenErr } = await supabaseClient
             .from('scenariusze_ratyfikowane')
-            .insert([{ nazwa: scenarioName }])
+            .insert([{ 
+                nazwa: scenarioName,
+                szerokosc: GRID_W,
+                wysokosc: GRID_H,
+                teren_json: JSON.stringify(terrain)
+            }])
             .select()
             .single();
 
@@ -1462,6 +1511,17 @@ async function saveMission() {
 
     setSupabaseStatus('Zapisywanie stanu...');
     try {
+        // Update terrain map properties over existing scenario
+        const { error: scenUpdateErr } = await supabaseClient
+            .from('scenariusze_ratyfikowane')
+            .update({
+                szerokosc: GRID_W,
+                wysokosc: GRID_H,
+                teren_json: JSON.stringify(terrain)
+            })
+            .eq('id', targetScenarioId);
+        if (scenUpdateErr) console.error('Błąd aktualizacji terenu:', scenUpdateErr);
+
         // Clear old data for this scenario
         const { error: deleteError } = await supabaseClient.from('jednostki_taktyczne').delete().eq('scenariusz_id', targetScenarioId);
         if (deleteError) {
@@ -1592,6 +1652,39 @@ function init() {
         } else {
             setSupabaseStatus('Wypełnij oba pola!', 'error');
         }
+    });
+
+    // Terrain Editor Handlers
+    document.querySelectorAll('#terrain-palette button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('#terrain-palette button').forEach(b => b.classList.remove('active'));
+            const b = e.target.closest('button');
+            b.classList.add('active');
+            activeBrush = b.dataset.terrain;
+        });
+    });
+
+    document.getElementById('btn-resize-map').addEventListener('click', () => {
+        let newW = parseInt(document.getElementById('input-grid-w').value);
+        let newH = parseInt(document.getElementById('input-grid-h').value);
+        if (newW >= 5 && newW <= 40) GRID_W = newW;
+        if (newH >= 5 && newH <= 30) GRID_H = newH;
+        
+        const newTerrain = [];
+        for (let y = 0; y < GRID_H; y++) {
+            newTerrain[y] = [];
+            for (let x = 0; x < GRID_W; x++) {
+                if (terrain[y] && terrain[y][x]) {
+                    newTerrain[y][x] = terrain[y][x];
+                } else {
+                    newTerrain[y][x] = T.PLAIN;
+                }
+            }
+        }
+        terrain = newTerrain;
+        resetPersistentReconMap();
+        renderMap();
+        showToast(`Zmieniono rozmiar mapy na ${GRID_W}x${GRID_H}`, 'info');
     });
 
     // Start
