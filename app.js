@@ -431,10 +431,7 @@ function createUnitMarker(unit) {
 
 // ==================== FOG OF WAR ====================
 function buildFogMap() {
-    if (creatorMode) {
-        return Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
-    }
-
+    if (creatorMode) return Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
     const fog = Array(GRID_H).fill().map(() => Array(GRID_W).fill(true));
     
     // Check C2 Network Status for PL units
