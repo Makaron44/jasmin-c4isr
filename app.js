@@ -537,6 +537,49 @@ function updateUnitInfo() {
 // ==================== INTERACTION ====================
 function onCellClick(x, y) {
     if (creatorMode && activeBrush !== 'Kursor') {
+        if (activeBrush === 'DELETE') {
+            const victim = units.find(u => u.alive && u.x === x && u.y === y);
+            if (victim) {
+                victim.alive = false;
+                renderMap();
+                showToast('Usunięto jednostkę', 'info');
+            }
+            return;
+        }
+
+        if (activeBrush === 'SPAWN_UNIT') {
+            const existing = units.find(u => u.alive && u.x === x && u.y === y);
+            if (existing) {
+                showToast('Pole jest już zajęte!', 'combat');
+                return;
+            }
+            
+            const faction = document.getElementById('editor-faction-select').value;
+            const type = document.getElementById('editor-unit-type').value;
+            const def = UNIT_DEFS[type];
+            units.push({
+                id: units.length,
+                faction: faction,
+                type: type,
+                name: `${type} #${units.length + 1}`,
+                x: x,
+                y: y,
+                hp: def.hp,
+                maxHp: def.hp,
+                ammo: def.ammo,
+                maxAmmo: def.ammo,
+                fuel: def.fuel,
+                maxFuel: def.fuel,
+                morale: 1.0,
+                jammed: false,
+                jammedTurns: 0,
+                alive: true
+            });
+            renderMap();
+            showToast('Dodano jednostkę', 'success');
+            return;
+        }
+
         const brushToTerrain = { 'Równina': T.PLAIN, 'Las': T.FOREST, 'Wzgórze': T.HILL, 'Miasto': T.URBAN, 'Droga': T.ROAD, 'Rzeka': T.RIVER, 'Most': T.BRIDGE };
         if (brushToTerrain[activeBrush]) {
             terrain[y][x] = brushToTerrain[activeBrush];
@@ -1344,6 +1387,15 @@ function enterCreatorMode() {
     activeScenarioId = null;
     document.getElementById('terrain-editor-panel').style.display = 'block';
 
+    const unitSelect = document.getElementById('editor-unit-type');
+    unitSelect.innerHTML = '';
+    Object.keys(UNIT_DEFS).forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type;
+        opt.textContent = type;
+        unitSelect.appendChild(opt);
+    });
+
     units = [ units.find(u => u.type === 'FOB Rogoźno' && u.alive) ].filter(Boolean); // Keep only FOB if exists, or nothing
     if (units.length === 0) {
         units.push({
@@ -1360,7 +1412,7 @@ function enterCreatorMode() {
     document.getElementById('rp-display').style.color = 'var(--accent-green)';
     document.getElementById('rp-count').textContent = '∞';
     
-    addLog('system', '🛠 TRYB KREATORA AKTYWNY. Możesz używać Palety Terenu i rozstawiać jednostki wrzucając je (0 RP). Mgła wojny wyłączona.');
+    addLog('system', '🛠 TRYB KREATORA. Używaj "SPAWN JEDNOSTEK" w menu z pędzlem, by roztawiać jednostki na kliknięcie. (Mgła wojny ukryta)');
     showToast('Tryb Kreatora Uruchomiony', 'success');
     
     deselectUnit();
