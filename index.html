@@ -135,10 +135,15 @@ CREATE TABLE scenariusze_ratyfikowane (
 ALTER TABLE jednostki_taktyczne 
 ADD COLUMN scenariusz_id UUID REFERENCES scenariusze_ratyfikowane(id) ON DELETE CASCADE;
 
--- 3. POLITYKI BEZPIECZEŃSTWA (RLS) DLA NOWEJ TABELI
+-- 3. POLITYKI BEZPIECZEŃSTWA (RLS) DLA OBU TABEL
 ALTER TABLE scenariusze_ratyfikowane ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Zezwól na odczyt wszystkim" ON scenariusze_ratyfikowane FOR SELECT USING (true);
-CREATE POLICY "Zezwól na zapis dla zalogowanych" ON scenariusze_ratyfikowane FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Odczyt scenariuszy" ON scenariusze_ratyfikowane FOR SELECT USING (true);
+CREATE POLICY "Zapis scenariuszy" ON scenariusze_ratyfikowane FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+ALTER TABLE jednostki_taktyczne ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Odczyt jednostek" ON jednostki_taktyczne FOR SELECT USING (true);
+CREATE POLICY "Zapis jednostek" ON jednostki_taktyczne FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Usuwanie jednostek" ON jednostki_taktyczne FOR DELETE USING (auth.role() = 'authenticated');
 </code></pre>
                 </div>
             </div>
