@@ -1708,9 +1708,9 @@ function init() {
     });
 
     // Terrain Editor Handlers
-    document.querySelectorAll('#terrain-palette button').forEach(btn => {
+    document.querySelectorAll('#terrain-editor-panel button[data-terrain]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('#terrain-palette button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#terrain-editor-panel button[data-terrain]').forEach(b => b.classList.remove('active'));
             const b = e.target.closest('button');
             b.classList.add('active');
             activeBrush = b.dataset.terrain;
