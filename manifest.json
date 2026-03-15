@@ -1,0 +1,22 @@
+{
+  "name": "JASMIN C4ISR - Symulator Sztabowy",
+  "short_name": "JASMIN C4",
+  "description": "Taktyczny symulator dowodzenia i kontroli z obsługą map operacyjnych i jednostek NATO.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

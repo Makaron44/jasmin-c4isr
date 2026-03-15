@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#05080f">
+    <title>JASMIN C4ISR – Symulator Sztabowy</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <meta name="description" content="Prototyp symulatora sztabowego C4ISR z mapą operacyjną NATO APP-6, dziennikiem meldunków i mechanikami taktycznymi.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+    <!-- TOP BAR -->
+    <header id="top-bar">
+        <div class="top-bar-left">
+            <span class="logo-icon">◆</span>
+            <h1>JASMIN C4ISR</h1>
+            <span class="subtitle">Symulator Sztabowy v1.0</span>
+        </div>
+        <div class="top-bar-center">
+            <div id="sim-clock">⏱ 06:00:00</div>
+            <div id="turn-counter">TURA: 0</div>
+            <div id="phase-indicator" class="phase-recon">FAZA: ROZPOZNANIE</div>
+            <div id="rp-display" style="color: var(--accent-amber); margin: 0 15px; font-weight: bold; border: 1px solid rgba(255,191,0,0.3); padding: 2px 10px; border-radius: 4px;">🎯 RP: <span id="rp-count">50</span></div>
+            <button class="btn-secondary" id="btn-wiki" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">📚 TAKTYKA</button>
+        </div>
+        <div class="top-bar-right">
+            <button id="btn-logout" class="btn-micro" style="display:none; color: var(--accent-red); border-color: var(--accent-red);">🔴 WYLOGUJ</button>
+            <button id="btn-next-turn" class="btn-primary">NASTĘPNA TURA ⏭</button>
+            <button id="btn-auto" class="btn-secondary" title="Auto-symulacja">⟳ AUTO</button>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main id="app-layout">
+        <!-- LEFT COLUMN: MAP + CONTROLS -->
+        <section id="left-column">
+            <!-- UNIT INFO PANEL -->
+            <div id="unit-info-panel" class="panel">
+                <div class="panel-header">DANE JEDNOSTKI</div>
+                <div id="unit-info-content">
+                    <p class="placeholder-text">Kliknij jednostkę na mapie…</p>
+                </div>
+            </div>
+
+            <!-- MAP CONTAINER -->
+            <div id="map-container">
+                <div id="map-grid"></div>
+                <div id="map-overlay-fog"></div>
+            </div>
+
+            <!-- CONTROLS BAR -->
+            <div id="controls-bar" class="panel">
+                <div class="control-group action-buttons">
+                    <button id="btn-move" class="btn-action" disabled title="Przesuń jednostkę">🚛 RUCH</button>
+                    <button id="btn-fire" class="btn-action" disabled title="Ogień na pozycję">🎯 OGIEŃ</button>
+                    <button id="btn-air-support" class="btn-action" title="Wezwij wsparcie lotnicze (F-16)">✈ LOTNICTWO</button>
+                    <button id="btn-deselect" class="btn-action" title="Odznacz">✕ ODZNACZ</button>
+                </div>
+                <div class="control-group">
+                    <span class="legend-item legend-pl">■ PL</span>
+                    <span class="legend-item legend-opfor">■ OPFOR</span>
+                    <span class="legend-item legend-forest">■ Las</span>
+                    <span class="legend-item legend-urban">■ Zabudowa</span>
+                    <span class="legend-item legend-river">■ Rzeka</span>
+                    <span class="legend-item legend-road">■ Droga</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: COMBAT LOG + SUPABASE -->
+        <aside id="right-column">
+            <!-- COMBAT LOG -->
+            <div id="combat-log-panel" class="panel">
+                <div class="panel-header">
+                    📋 DZIENNIK MELDUNKÓW
+                    <button id="btn-clear-log" class="btn-small" title="Wyczyść log">🗑</button>
+                </div>
+                <div id="combat-log"></div>
+            </div>
+
+            <!-- SUPABASE PANEL -->
+            <div id="supabase-panel" class="panel collapsible">
+                <div class="panel-header" onclick="togglePanel('supabase-panel')">☁ SUPABASE – ARCHIWUM MISJI ▼</div>
+                <div class="panel-body">
+                    <div id="sb-connection-status" class="status-box">
+                        <span class="status-dot"></span> <span class="status-text">NIEPOŁĄCZONO</span>
+                        <button id="btn-sb-config" class="btn-micro">⚙ USTAWIENIA</button>
+                    </div>
+                    
+                    <div id="sb-config-form" class="supabase-form" style="display:none;">
+                        <label>URL PROJEKTU:
+                            <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co">
+                        </label>
+                        <label>ANON KEY:
+                            <input type="password" id="sb-key" placeholder="eyJhbGci...">
+                        </label>
+                        <button id="btn-sb-connect" class="btn-secondary" style="width:100%">💾 ZAPISZ I POŁĄCZ</button>
+                    </div>
+
+                    <div id="sb-actions" class="supabase-buttons" style="display:none; margin-top:10px;">
+                        <button id="btn-sb-load" class="btn-secondary">📥 WCZYTAJ MISJĘ</button>
+                        <button id="btn-sb-save" class="btn-secondary">📤 ZAPISZ STAN</button>
+                    </div>
+                    <div id="sb-status"></div>
+                </div>
+            </div>
+
+            <!-- SQL REFERENCE -->
+            <div id="sql-panel" class="panel collapsible">
+                <div class="panel-header" onclick="togglePanel('sql-panel')">📐 SQL – STRUKTURA TABELI ▼</div>
+                <div class="panel-body">
+                    <pre><code>CREATE TABLE jednostki_taktyczne (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  frakcja TEXT NOT NULL
+    CHECK (frakcja IN ('PL','OPFOR')),
+  pozycja_x INTEGER NOT NULL,
+  pozycja_y INTEGER NOT NULL,
+  typ_sprzetu TEXT NOT NULL,
+  hp INTEGER NOT NULL DEFAULT 100,
+  amunicja INTEGER NOT NULL DEFAULT 100,
+  paliwo INTEGER NOT NULL DEFAULT 100,
+  morale REAL NOT NULL DEFAULT 1.0,
+  jammed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);</code></pre>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- AUTH OVERLAY -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <span class="logo-icon">💠</span>
+                <h2>KONTROLA DOSTĘPU</h2>
+                <p>TERMINAL OPERACYJNY JASMIN C4ISR</p>
+            </div>
+            <div class="auth-body">
+                <div id="auth-error" class="auth-error-box" style="display:none;"></div>
+                
+                <div id="auth-inputs">
+                    <label>IDENTYFIKATOR (E-MAIL):
+                        <input type="email" id="auth-email" placeholder="operator@jasmin.pl">
+                    </label>
+                    <label>KLUCZ DOSTĘPU (HASŁO):
+                        <input type="password" id="auth-password" placeholder="••••••••">
+                    </label>
+                    <div class="auth-buttons">
+                        <button id="btn-login" class="btn-primary">🔓 ZALOGUJ</button>
+                        <button id="btn-register" class="btn-secondary">📝 REJESTRACJA</button>
+                    </div>
+                </div>
+
+                <!-- Supabase Quick Config (Visible if not connected) -->
+                <div id="auth-sb-config" class="auth-extra-config" style="display:none; margin-top: 15px; border-top: 1px dashed var(--accent-blue); padding-top: 15px;">
+                    <p style="font-size: 0.8em; color: var(--accent-amber); margin-bottom: 10px;">⚠️ BRAK POŁĄCZENIA Z SUPABASE. KONFIGURUJ TERMINAL:</p>
+                    <label>URL: <input type="text" id="auth-sb-url" placeholder="https://..." style="font-size: 0.8em;"></label>
+                    <label>KEY: <input type="password" id="auth-sb-key" placeholder="eyJ..." style="font-size: 0.8em;"></label>
+                    <button id="btn-auth-sb-connect" class="btn-micro" style="width:100%; margin-top: 5px;">💾 POŁĄCZ I ZAPISZ</button>
+                </div>
+
+                <p class="auth-hint">Wymagane poświadczenia poziomu 2 (OPERATOR).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast-container"></div>
+    <!-- JasminWiki Modal -->
+    <div id="wiki-modal">
+        <div class="wiki-card">
+            <div class="close-wiki" onclick="toggleWiki()">×</div>
+            
+            <div class="wiki-sidebar">
+                <div class="wiki-search-box">
+                    <input type="text" id="wiki-search" placeholder="Szukaj jednostki..." oninput="filterWiki()">
+                </div>
+                <div class="wiki-unit-list" id="wiki-unit-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="wiki-content" id="wiki-details">
+                <div class="placeholder-text" style="display:flex; align-items:center; justify-content:center; height:100%;">
+                    Wybierz jednostkę z listy po lewej, aby zobaczyć szczegóły taktyczne.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recruitment Modal -->
+    <div id="recruit-modal" class="wiki-modal" style="display:none; position:fixed; inset:0; background:rgba(5,8,15,0.9); z-index:4000; backdrop-filter:blur(15px); align-items:center; justify-content:center; padding:40px;">
+        <div class="wiki-card" style="width:800px; height:70vh; display:flex; flex-direction:column;">
+            <div class="close-wiki" onclick="toggleRecruit()" style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:24px;">×</div>
+            <div style="padding:30px; border-bottom:1px solid var(--border);">
+                <h2 style="color:var(--accent-amber); letter-spacing:2px; margin:0;">CENTRUM REKRUTACJI POSIŁKÓW</h2>
+                <p style="color:var(--text-dim); margin:5px 0 0 0;">Wybierz jednostkę do dyslokacji w rejonie FOB Rogoźno</p>
+            </div>
+            <div id="recruit-list" style="flex:1; overflow-y:auto; padding:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
+                <!-- Loaded dynamically -->
+            </div>
+            <div style="padding:20px; background:rgba(0,0,0,0.3); border-top:1px solid var(--border); text-align:right;">
+                <span style="color:var(--text-dim); margin-right:20px;">Dostępne środki: <b id="rp-available" style="color:var(--accent-amber);">50</b> RP</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="wiki_data.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker zarejestrowany! Scope:', reg.scope))
+                    .catch(err => console.error('Błąd rejestracji SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>

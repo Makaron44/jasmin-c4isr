@@ -1,0 +1,136 @@
+/* 
+   JASMIN C4ISR – JasminWiki Styles 
+   Tactical Handbook Aesthetic
+*/
+
+#wiki-modal {
+    position: fixed; inset: 0;
+    background: rgba(5, 8, 15, 0.85);
+    display: none; align-items: center; justify-content: center;
+    z-index: 3000;
+    backdrop-filter: blur(10px);
+    padding: 40px;
+}
+
+#wiki-modal.open { display: flex; animation: wiki-fade-in 0.3s ease-out; }
+
+.wiki-card {
+    width: 1000px; max-width: 95vw; height: 80vh;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(0,212,255,0.1);
+    display: flex; overflow: hidden;
+    position: relative;
+}
+
+/* Sidebar: Unit List */
+.wiki-sidebar {
+    width: 280px;
+    background: var(--bg-panel-header);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+}
+
+.wiki-search-box {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.wiki-search-box input {
+    width: 100%; height: 32px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    color: var(--text-primary); border-radius: 4px; padding: 0 10px;
+    font-family: var(--font-mono); font-size: 13px;
+}
+
+.wiki-unit-list {
+    flex: 1; overflow-y: auto; padding: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+.wiki-unit-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 6px;
+    cursor: pointer; transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.wiki-unit-item:hover { background: rgba(0,212,255,0.05); border-color: rgba(0,212,255,0.2); }
+.wiki-unit-item.active { background: rgba(0,255,136,0.1); border-color: var(--accent-green); }
+
+.wiki-unit-item .unit-mini-icon { width: 32px; height: 32px; flex-shrink: 0; }
+.wiki-unit-item .unit-name { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.wiki-unit-item.active .unit-name { color: var(--accent-green); }
+
+/* Main Content: Unit Details */
+.wiki-content {
+    flex: 1; overflow-y: auto; padding: 40px;
+    display: flex; flex-direction: column; gap: 24px;
+}
+
+.wiki-header {
+    display: flex; align-items: flex-start; gap: 30px;
+    border-bottom: 1px solid var(--border); padding-bottom: 24px;
+}
+
+.wiki-big-symbol {
+    width: 80px; height: 80px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.wiki-title-group h2 {
+    font-size: 32px; letter-spacing: 2px; color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.wiki-title-group .role-tag {
+    font-family: var(--font-mono); font-size: 14px;
+    color: var(--accent-cyan); text-transform: uppercase;
+}
+
+.wiki-metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+
+.wiki-metric-card {
+    background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+    padding: 12px; border-radius: 6px; text-align: center;
+}
+
+.wiki-metric-card label {
+    display: block; font-size: 10px; color: var(--text-dim);
+    text-transform: uppercase; margin-bottom: 4px;
+}
+.wiki-metric-card .value { font-size: 20px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
+
+.wiki-section h3 {
+    font-size: 16px; color: var(--accent-green);
+    margin-bottom: 12px; letter-spacing: 1px;
+    border-left: 3px solid var(--accent-green); padding-left: 10px;
+}
+
+.wiki-text { line-height: 1.6; color: var(--text-secondary); font-size: 15px; }
+
+.wiki-features { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.feature-chip {
+    background: rgba(0,212,255,0.1); border: 1px solid var(--border-glow);
+    padding: 4px 12px; border-radius: 20px; font-size: 12px;
+    color: var(--accent-cyan); font-family: var(--font-mono);
+}
+
+.close-wiki {
+    position: absolute; top: 20px; right: 20px;
+    width: 32px; height: 32px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px; transition: all 0.2s;
+}
+.close-wiki:hover { color: var(--accent-red); border-color: var(--accent-red); transform: rotate(90deg); }
+
+@keyframes wiki-fade-in {
+    from { opacity: 0; transform: scale(1.05); }
+    to { opacity: 1; transform: scale(1); }
+}
