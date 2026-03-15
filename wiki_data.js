@@ -99,5 +99,59 @@ const WIKI_DATA = {
         description: 'Wrogie systemy rakietowe i lufowe.',
         tactics: 'Używaj Radaru Liwiec do wyznaczania celów dla własnych Krabów (ogień kontrbateryjny).',
         features: ['Długi zasięg', 'Atak pośredni', 'Wymaga zniszczenia przez Kraby']
+    },
+    'SPZR Poprad': {
+        role: 'Samobieżny Przeciwlotniczy Zestaw Rakietowy',
+        description: 'System obrony powietrznej bardzo krótkiego zasięgu (VSHORAD). Wyposażony w rakiety Grom/Piorun.',
+        tactics: 'Rozstawiaj w pobliżu kluczowych zgrupowań pancernych. Poprad automatycznie przechwytuje wrogie śmigłowce (Mi-24) w zasięgu 5 pól.',
+        features: ['Automatyczna obrona przeciwlotnicza', 'Wysoka mobilność', 'Zasięg 5']
+    },
+    'ZSU-23-4 Szyłka': {
+        role: 'Samobieżne Działo Przeciwlotnicze OPFOR',
+        description: 'Cztero-lufowy system przeciwlotniczy. Groźny cel zarówno dla dronów, jak i lekko opancerzonych pojazdów.',
+        tactics: 'Priorytetowy cel dla Twoich czołgów. Zasięg 4 i wysoka szybkostrzelność czynią ją zabójczą dla jednostek takich jak Żmija czy FlyEye.',
+        features: ['Ogień przeciwlotniczy', 'Wysoki DMG vs technika lekka', 'Zasięg 4']
+    },
+    'Jelcz 882 (Amunicja)': {
+        role: 'Mobilny Wóz Amunicyjny',
+        description: 'Specjalistyczny pojazd logistyczny zaopatrujący jednostki bojowe w środki bojowe (ŚSP).',
+        tactics: 'Niezbędny przy bateriach Krabów i Langust. Automatycznie uzupełnia amunicję (+20) sąsiednim jednostkom co turę.',
+        features: ['Regeneracja AMUNICJI', 'Brak własnego uzbrojenia', 'Klucz do wsparcia artyleryjskiego']
+    },
+    'Rosomak-WEM': {
+        role: 'Wóz Ewakuacji Medycznej',
+        description: 'Jednostka wsparcia medycznego przeznaczona do opatrywania rannych i podnoszenia morale na linii frontu.',
+        tactics: 'Trzymaj w drugiej linii natarcia. Każda tura spędzona obok WEM przywraca jednostkom punkty życia (+15) i morale (+10%).',
+        features: ['Regeneracja HP', 'Bonus do Morale', 'Solidny pancerz kadłuba']
+    },
+    'Warmate': {
+        role: 'Amunicja Krążąca (Kamikaze)',
+        description: 'Dron uderzeniowy zdolny do precyzyjnego niszczenia celów poprzez bezpośrednie uderzenie.',
+        tactics: 'Broń jednorazowa. Wyślij go na najtwardszy cel (np. T-72) – eksplozja po trafieniu niszczy drona, ale zadaje ogromne obrażenia (80+).',
+        features: ['Jednorazowego użytku', 'Ekstremalne obrażenia', 'Bardzo szybki (5)']
+    },
+    'Sekcja Snajperska': {
+        role: 'Strzelcy Wyborowi Wojsk Specjalnych',
+        description: 'Elitarna sekcja przeznaczona do precyzyjnej eliminacji celów i prowadzenia dyskretnej obserwacji.',
+        tactics: 'Niewidzialni dla wroga (stealth), dopóki nie zostaną wykryci z bliska (1 pole) lub nie oddadzą strzału. Idealni do zasadzek.',
+        features: ['Niewidzialność (Stealth)', 'Wysoki zasięg wzroku (6)', 'Precyzyjny ogień (Range 4)']
+    },
+    'WR-40 Langusta': {
+        role: 'Wyrzutnia Rakietowa',
+        description: 'Wieloprowadnicowy system rakietowy przeznaczony do rażenia celów powierzchniowych.',
+        tactics: 'Prowadzi ostrzał obszarowy (Salwa). Trafienie w cel powoduje obrażenia również na wszystkich 8 sąsiednich polach (efekt obszarowy 3x3).',
+        features: ['Atak obszarowy 3x3', 'Zasięg 8', 'Bardzo wysokie zużycie amunicji']
+    },
+    'BM-21 Grad': {
+        role: 'Wieloprowadnicowa Wyrzutnia Rakietowa OPFOR',
+        description: 'Podstawowy system artylerii rakietowej przeciwnika.',
+        tactics: 'Analogicznie do Langusty, Grad zadaje obrażenia obszarowe. Rozpraszaj swoje jednostki, aby salwa nie trafiła kilku wozów naraz.',
+        features: ['Atak obszarowy 3x3', 'Mobilność', 'Zasięg 8']
+    },
+    'Bunkier': {
+        role: 'Umocnienie Polowe / Fortyfikacja',
+        description: 'Stała konstrukcja obronna zapewniająca ekstremalną ochronę załodze.',
+        tactics: 'Ustawiany w edytorze. Jednostka w bunkrze ma 90% pancerza, co czyni ją prawie niezniszczalną dla ognia bezpośredniego.',
+        features: ['Nieruchomy', 'Pancerz 90', 'Ogromna pula HP']
     }
 };

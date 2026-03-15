@@ -43,7 +43,16 @@ const UNIT_DEFS = {
     'Radar Liwiec':{ hp: 50,  ammo: 0,   fuel: 100, baseDmg: 0,  armor: 20, range: 8, sight: 3, symbol: 'radar',    speed: 2 },
     'Wóz Inż':     { hp: 70,  ammo: 20,  fuel: 120, baseDmg: 10, armor: 35, range: 1, sight: 2, symbol: 'eng',      speed: 2 },
     'Wóz Dowodzenia':{ hp: 80, ammo: 40,  fuel: 120, baseDmg: 15, armor: 40, range: 2, sight: 3, symbol: 'hq',       speed: 2 },
-    'Mina':        { hp: 1,   ammo: 0,   fuel: 0,   baseDmg: 60, armor: 0,  range: 0, sight: 2, symbol: 'mine',     speed: 0 }
+    'Mina':        { hp: 1,   ammo: 0,   fuel: 0,   baseDmg: 60, armor: 0,  range: 0, sight: 2, symbol: 'mine',     speed: 0 },
+    'SPZR Poprad': { hp: 50,  ammo: 40,  fuel: 100, baseDmg: 30, armor: 25, range: 5, sight: 5, symbol: 'aa',       speed: 2 },
+    'ZSU-23-4 Szyłka':{ hp: 60, ammo: 120, fuel: 100, baseDmg: 35, armor: 30, range: 4, sight: 4, symbol: 'aa',       speed: 2 },
+    'Jelcz 882 (Amunicja)':{ hp: 40, ammo: 500, fuel: 120, baseDmg: 0,  armor: 5,  range: 0, sight: 2, symbol: 'supply',   speed: 3 },
+    'Rosomak-WEM': { hp: 70,  ammo: 0,   fuel: 120, baseDmg: 0,  armor: 40, range: 0, sight: 3, symbol: 'med',      speed: 2 },
+    'Warmate':     { hp: 10,  ammo: 1,   fuel: 100, baseDmg: 80, armor: 0,  range: 1, sight: 5, symbol: 'uav',      speed: 5 },
+    'Sekcja Snajperska':{ hp: 30, ammo: 20,  fuel: 20,  baseDmg: 40, armor: 0,  range: 4, sight: 6, symbol: 'sniper',   speed: 1 },
+    'WR-40 Langusta':{ hp: 50,  ammo: 40,  fuel: 100, baseDmg: 50, armor: 10, range: 8, sight: 2, symbol: 'rocket_arty', speed: 2 },
+    'BM-21 Grad':  { hp: 50,  ammo: 40,  fuel: 100, baseDmg: 45, armor: 10, range: 8, sight: 2, symbol: 'rocket_arty', speed: 2 },
+    'Bunkier':     { hp: 300, ammo: 100, fuel: 0,   baseDmg: 25, armor: 90, range: 2, sight: 3, symbol: 'fortification', speed: 0 }
 };
 
 // Reinforcement Costs & Points
@@ -58,7 +67,13 @@ const UNIT_COSTS = {
     'FlyEye': 12,
     'Radar Liwiec': 35,
     'Wóz Inż': 30,
-    'Wóz Dowodzenia': 40
+    'Wóz Dowodzenia': 40,
+    'SPZR Poprad': 35,
+    'Jelcz 882 (Amunicja)': 25,
+    'Rosomak-WEM': 30,
+    'Warmate': 15,
+    'Sekcja Snajperska': 40,
+    'WR-40 Langusta': 55
 };
 
 // ==================== MAP LAYOUT (Wielkopolska - okolice Rogoźna) ====================
@@ -177,6 +192,31 @@ function natoSVG(type, faction) {
             interior = `<rect x="5" y="8" width="24" height="16" fill="none" stroke="${fill}" stroke-width="2"/>
                         <rect x="5" y="8" width="8" height="8" fill="${fill}"/>`;
             break;
+        case 'aa':
+            // Anti-Air: dome/arch with spikes
+            interior = `<path d="M7 22 A10 10 0 0 1 27 22" fill="none" stroke="${fill}" stroke-width="2.5"/>
+                        <path d="M17 12 L17 6 M12 14 L9 8 M22 14 L25 8" fill="${fill}" stroke="${fill}" stroke-width="1.5"/>`;
+            break;
+        case 'med':
+            // Medical: cross
+            interior = `<path d="M17 10 V22 M11 16 H23" stroke="${fill}" stroke-width="4"/>`;
+            break;
+        case 'rocket_arty':
+            // Rocket Artillery: standard arty circle with arrows
+            interior = `<circle cx="17" cy="16" r="4" fill="${fill}"/>
+                        <path d="M10 20 L24 10 M12 22 L26 12" stroke="${fill}" stroke-width="2"/>`;
+            break;
+        case 'sniper':
+            // Sniper: crosshair
+            interior = `<circle cx="17" cy="16" r="6" stroke="${fill}" stroke-width="1.5" fill="none"/>
+                        <line x1="17" y1="8" x2="17" y2="24" stroke="${fill}" stroke-width="1.5"/>
+                        <line x1="9" y1="16" x2="25" y2="16" stroke="${fill}" stroke-width="1.5"/>`;
+            break;
+        case 'fortification':
+            // Fortification: bridge-like rectangle with spikes
+            interior = `<rect x="8" y="10" width="18" height="12" fill="none" stroke="${fill}" stroke-width="2"/>
+                        <path d="M8 10 V8 H12 V10 M15 10 V8 H19 V10 M22 10 V8 H26 V10" fill="none" stroke="${fill}" stroke-width="2"/>`;
+            break;
         default:
             interior = `<circle cx="17" cy="16" r="4" fill="${fill}"/>`;
     }
@@ -287,6 +327,7 @@ function spawnReinforcements() {
             morale: 1.0,
             jammed: false,
             jammedTurns: 0,
+            concealed: UNIT_DEFS[type].symbol === 'sniper',
             alive: true
         };
         units.push(unit);
@@ -363,7 +404,15 @@ function renderMap() {
             }
 
             // Unit on this cell
-            const unit = units.find(u => u.alive && u.x === x && u.y === y);
+            const unit = units.find(u => {
+                if (!u.alive || u.x !== x || u.y !== y) return false;
+                // Sniper Stealth (Phase 6)
+                if (u.concealed && u.faction === 'OPFOR' && !creatorMode) {
+                    const detected = units.some(pl => pl.alive && pl.faction === 'PL' && Math.abs(pl.x - u.x) + Math.abs(pl.y - u.y) <= 1);
+                    if (!detected) return false;
+                }
+                return true;
+            });
             if (unit) {
                 const marker = createUnitMarker(unit);
                 cell.appendChild(marker);
@@ -575,6 +624,7 @@ function onCellClick(x, y) {
                 morale: 1.0,
                 jammed: false,
                 jammedTurns: 0,
+                concealed: def.symbol === 'sniper',
                 alive: true
             });
             renderMap();
@@ -795,20 +845,21 @@ function handleFire(x, y) {
     if (attacker.ammo <= 0) { showToast('Brak amunicji!', 'combat'); return; }
 
     // Ammo cost
-    const ammoCost = def.symbol === 'arty' ? 20 : 10;
+    const ammoCost = def.symbol === 'arty' || def.symbol === 'rocket_arty' ? 20 : 10;
     attacker.ammo = Math.max(0, attacker.ammo - ammoCost);
 
     // Calculate damage
     const damage = calculateDamage(attacker, target);
     
     // Counter-Battery: Mark artillery position
-    if (def.symbol === 'arty') {
+    if (def.symbol === 'arty' || def.symbol === 'rocket_arty') {
         batteryMarkers.push({ x: attacker.x, y: attacker.y, faction: attacker.faction, age: 0 });
         if (attacker.faction === 'OPFOR') {
             addLog('recon', `📡 WYKRYTO BŁYSK ARTYLERII! Radar szuka pozycji...`);
         }
     }
 
+    // Apply primary damage
     target.hp -= damage;
     addLog('combat', `${attacker.name} → ${target.name}: obrażenia ${damage} HP (penetracja: ${Math.round(penetrationRatio(attacker, target) * 100)}%)`);
     addLog('logistics', `${attacker.name}: zużycie ŚSP -${ammoCost} (pozostało: ${attacker.ammo})`);
@@ -821,8 +872,44 @@ function handleFire(x, y) {
         target.alive = false;
         addLog('loss', `💥 ${target.name} (${target.type}) ZNISZCZONA!`);
         showToast(`${target.name} zniszczona!`, 'combat');
-        // Morale impact on nearby allies
         applyMoraleLoss(target);
+    }
+
+    // Rocket Artillery Area Effect
+    if (def.symbol === 'rocket_arty') {
+        addLog('combat', `🚀 SALWA RAKIETOWA: Ostrzał obszarowy wokół [${x},${y}]`);
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue; 
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                    const areaTarget = units.find(u => u.alive && u.x === nx && u.y === ny && u.faction !== attacker.faction);
+                    showExplosion(nx, ny);
+                    if (areaTarget) {
+                        const aoeDmg = Math.floor(damage * 0.6);
+                        areaTarget.hp -= aoeDmg;
+                        addLog('combat', `💥 Odłamek: ${areaTarget.name} otrzymał ${aoeDmg} HP`);
+                        if (areaTarget.hp <= 0) {
+                            areaTarget.hp = 0; areaTarget.alive = false;
+                            addLog('loss', `💥 ${areaTarget.name} ZNISZCZONA przez odłamki salwy!`);
+                            applyMoraleLoss(areaTarget);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Warmate Kamikaze
+    if (attacker.type === 'Warmate') {
+        attacker.hp = 0;
+        attacker.alive = false;
+        addLog('loss', `💥 JEDNOSTKA ZUŻYTA: ${attacker.name} uległa samozniszczeniu po ataku.`);
+    }
+
+    // Reveal sniper on fire
+    if (attacker.symbol === 'sniper') {
+        attacker.concealed = false;
     }
 
     actionMode = null;
@@ -1024,6 +1111,26 @@ function processOpforAI() {
             addLog('combat', `${u.name} → ${target.name}: obrażenia ${damage} HP`);
             showExplosion(target.x, target.y);
 
+            // Rocket Arty AoE for AI
+            if (def.symbol === 'rocket_arty') {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const nx = target.x + dx, ny = target.y + dy;
+                        const areaTarget = units.find(pl => pl.alive && pl.x === nx && pl.y === ny && pl.faction === 'PL');
+                        if (areaTarget) {
+                            const aoeDmg = Math.floor(damage * 0.5);
+                            areaTarget.hp -= aoeDmg;
+                            showExplosion(nx, ny);
+                            if (areaTarget.hp <= 0) {
+                                areaTarget.hp = 0; areaTarget.alive = false;
+                                applyMoraleLoss(areaTarget);
+                            }
+                        }
+                    }
+                }
+            }
+
             if (target.hp <= 0) {
                 target.hp = 0;
                 target.alive = false;
@@ -1114,6 +1221,63 @@ function moveOpforUnit(unit, target) {
 }
 
 // ==================== TURN PROCESSING ====================
+function processAA() {
+    const aaUnits = units.filter(u => u.alive && u.symbol === 'aa' && !u.jammed);
+    aaUnits.forEach(aa => {
+        const def = UNIT_DEFS[aa.type];
+        // Targets: anything in air (Mi-24 uses recon symbol currently, FlyEye uses uav)
+        const targets = units.filter(u => u.alive && u.faction !== aa.faction && (u.type === 'Mi-24' || u.type === 'FlyEye' || u.symbol === 'uav'));
+        
+        for (const t of targets) {
+            const dist = Math.abs(aa.x - t.x) + Math.abs(aa.y - t.y);
+            if (dist <= def.range && aa.ammo > 0) {
+                const dmg = Math.floor(def.baseDmg * (0.8 + Math.random() * 0.4));
+                t.hp -= dmg;
+                aa.ammo -= 2;
+                
+                addLog('combat', `🚀 OPL: ${aa.name} ostrzelał ${t.name} (DMG: ${dmg}).`);
+                if (aa.faction === 'PL') showToast(`OPL: ${aa.name} przechwycił cel!`, 'combat');
+                
+                if (t.hp <= 0) {
+                    t.hp = 0;
+                    t.alive = false;
+                    addLog('loss', `💥 KONTAKT POWIETRZNY ZNISZCZONY: ${t.name} spadł na ziemię.`);
+                }
+                break; // One engagement per turn
+            }
+        }
+    });
+}
+
+function processRegen() {
+    // Ammo Trucks
+    const ammoTrucks = units.filter(u => u.alive && u.type === 'Jelcz 882 (Amunicja)' && !u.jammed);
+    ammoTrucks.forEach(truck => {
+        const neighbors = units.filter(u => u.alive && u.faction === truck.faction && Math.abs(u.x - truck.x) + Math.abs(u.y - truck.y) <= 1);
+        neighbors.forEach(n => {
+            const def = UNIT_DEFS[n.type];
+            if (n.ammo < def.ammo) {
+                n.ammo = Math.min(def.ammo, n.ammo + 20);
+                addLog('logistics', `📦 AMUNICJA: ${truck.name} uzupełnił zapasy ${n.name}.`);
+            }
+        });
+    });
+
+    // Medevac
+    const wems = units.filter(u => u.alive && u.type === 'Rosomak-WEM' && !u.jammed);
+    wems.forEach(wem => {
+        const neighbors = units.filter(u => u.alive && u.faction === wem.faction && Math.abs(u.x - wem.x) + Math.abs(u.y - wem.y) <= 1);
+        neighbors.forEach(n => {
+            const def = UNIT_DEFS[n.type];
+            if (n.hp < def.hp) {
+                n.hp = Math.min(def.hp, n.hp + 15);
+                n.morale = Math.min(1.0, n.morale + 0.1);
+                addLog('logistics', `🚑 MEDEVAC: ${wem.name} opatrzył załogę ${n.name}.`);
+            }
+        });
+    });
+}
+
 function nextTurn() {
     if (creatorMode) {
         showToast('Tury są wstrzymane w Trybie Kreatora', 'info');
@@ -1147,6 +1311,12 @@ function nextTurn() {
 
     // 7. Mines Logic
     processMines();
+
+    // 8. Anti-Air Defense
+    processAA();
+
+    // 9. Logistics & Medevac Regeneration
+    processRegen();
 
     // 8. Cooldowns
     if (airSupportCooldown > 0) airSupportCooldown--;
